@@ -1,0 +1,43 @@
+from ibapi.client import EClient
+from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
+from ibapi.common import BarData
+from threading import Thread
+import time
+import pandas as pd
+
+def get_historical_data(contract: Contract, end_date: str, trading_days: int = 30):
+    class IBapi(EWrapper, EClient):
+        def __init__(self):
+            EClient.__init__(self, self)
+            self.data = []
+
+        def historicalData(self, reqId, bar: BarData):
+            self.data.append([bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume])
+
+    def run_loop():
+        app.run()
+
+    app = IBapi()
+    app.connect(windows_ip, 7496, 123)
+    client_id = 1
+
+    # Start the socket in a thread
+    api_thread = Thread(target=run_loop, daemon=True)
+    api_thread.start()
+
+    # Sleep interval to allow time for connection to server
+    time.sleep(1)
+
+    # Request historical candles
+    duration_str = f'{trading_days} D'
+    app.reqHistoricalData(client_id, contract, end_date + ' 00:00:00 UTC', duration_str, '1 day', 'TRADES', 1, 1, False, [])
+
+    time.sleep(5)  # Sleep to allow enough time for data to be returned
+
+    # Convert data to DataFrame
+    df = pd.DataFrame(app.data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+
+    app.disconnect()
+
+    return df
